@@ -1,0 +1,17 @@
+{
+  "name": "@kiwi/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./components/*": {
+      "svelte": "./components/*"
+    },
+    "./styles/*": "./styles/*",
+    "./data/*": "./data/*",
+    "./assets/*": "./assets/*"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}

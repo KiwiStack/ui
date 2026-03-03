@@ -1,0 +1,100 @@
+/* ============================================
+   Kiwi UI — Design System Tokens
+   ============================================ */
+
+:root {
+  /* === Fruit Anatomy (Brand Colors) === */
+  --kiwi-core: #F5F5EE;
+  --kiwi-green: #7CB342;
+  --kiwi-bright: #9CCC65;
+  --kiwi-light: #C5E1A5;
+  --kiwi-skin: #795548;
+  --kiwi-skin-light: #A1887F;
+  --kiwi-dark: #33691E;
+  --seed-black: #1A1A1A;
+  --bg-cream: #FAFFF5;
+  --accent-lime: #CDDC39;
+  --vine-green: #558B2F;
+  --vine-brown: #5D4037;
+
+  /* === Service Pop Colors === */
+  --pop-coral: #FF7043;
+  --pop-teal: #26A69A;
+  --pop-blue: #42A5F5;
+  --pop-purple: #AB47BC;
+  --pop-pink: #EC407A;
+  --pop-amber: #FFA726;
+
+  /* === Dark Theme (Default) === */
+
+  /* Backgrounds */
+  --app-bg: #1A1A1A;
+  --app-bg-raised: #242424;
+  --app-bg-surface: #2A2A2A;
+  --app-bg-hover: #333333;
+  --app-bg-active: #3A3A3A;
+
+  /* Sidebar */
+  --sidebar-bg: #1A1A1A;
+  --sidebar-icon-bg: transparent;
+  --sidebar-icon-active: var(--pop-coral);
+  --sidebar-indicator: var(--kiwi-green);
+
+  /* Text */
+  --text-primary: #E8E8E8;
+  --text-secondary: #999999;
+  --text-muted: #666666;
+  --text-on-color: #FFFFFF;
+
+  /* Borders & dividers */
+  --border-subtle: #333333;
+  --border-input: #FF7043;
+  --border-focus: var(--kiwi-green);
+
+  /* AI Assistant panel */
+  --assistant-bg: #1E1E1E;
+  --assistant-user-msg: #3A5F28;
+  --assistant-ai-msg: #2A2A2A;
+  --assistant-action-bg: #242424;
+  --assistant-action-border: #333333;
+
+  /* Interactive */
+  --button-primary-bg: transparent;
+  --button-primary-border: var(--kiwi-green);
+  --button-primary-text: var(--text-primary);
+  --button-secondary-bg: transparent;
+  --button-secondary-border: #555555;
+
+  /* Unread */
+  --unread-dot: var(--pop-coral);
+
+  /* === Typography === */
+  --font-heading: 'Quicksand', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* === Spacing Scale (4px grid) === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* === Icon Sizes === */
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --icon-xl: 32px;
+
+  /* === Transitions === */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+
+  /* === Service color (set dynamically) === */
+  --service-color: var(--pop-coral);
+}

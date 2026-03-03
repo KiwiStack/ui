@@ -1,0 +1,34 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Skin -->
+  <circle cx="100" cy="100" r="95" fill="#795548"/>
+  <circle cx="100" cy="100" r="88" fill="#9CCC65"/>
+
+  <!-- Flesh inner -->
+  <circle cx="100" cy="100" r="70" fill="#7CB342" opacity="0.45"/>
+
+  <!-- Rays -->
+  <g opacity="0.3" stroke="white" stroke-width="0.8">
+    <line x1="100" y1="78" x2="100" y2="15"/>
+    <line x1="115" y1="80" x2="155" y2="22"/>
+    <line x1="122" y1="90" x2="183" y2="58"/>
+    <line x1="122" y1="100" x2="185" y2="100"/>
+    <line x1="122" y1="110" x2="183" y2="143"/>
+    <line x1="115" y1="120" x2="155" y2="178"/>
+    <line x1="100" y1="122" x2="100" y2="185"/>
+    <line x1="85" y1="120" x2="45" y2="178"/>
+    <line x1="78" y1="110" x2="18" y2="143"/>
+    <line x1="78" y1="100" x2="15" y2="100"/>
+    <line x1="78" y1="90" x2="18" y2="58"/>
+    <line x1="85" y1="80" x2="45" y2="22"/>
+  </g>
+
+  <!-- Seeds - just 4, slightly random placement -->
+  <ellipse cx="100" cy="52" rx="2.5" ry="4" fill="#1a1a1a" opacity="0.85"/>
+  <ellipse cx="140" cy="80" rx="2.5" ry="4" fill="#1a1a1a" opacity="0.85" transform="rotate(55,140,80)"/>
+  <ellipse cx="100" cy="146" rx="2.5" ry="4" fill="#1a1a1a" opacity="0.85" transform="rotate(180,100,146)"/>
+  <ellipse cx="62" cy="105" rx="2.5" ry="4" fill="#1a1a1a" opacity="0.85" transform="rotate(270,62,105)"/>
+
+  <!-- Core -->
+  <circle cx="100" cy="100" r="22" fill="#F5F5EE"/>
+  <circle cx="100" cy="100" r="20" fill="#EEEEDF" stroke="#ddd" stroke-width="0.5"/>
+</svg>

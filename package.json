@@ -1,0 +1,11 @@
+{
+  "name": "kiwi-ui",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter kiwi-web dev",
+    "build": "pnpm --filter kiwi-web build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "pnpm -r format"
+  }
+}
