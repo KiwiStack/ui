@@ -1,5 +1,5 @@
 {
-  "name": "kiwi-web",
+  "name": "kiwi-app",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -7,6 +7,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "tauri": "tauri",
     "lint": "echo 'TODO'",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "format": "echo 'TODO'"
@@ -18,6 +19,7 @@
     "@sveltejs/adapter-static": "^3.0.0",
     "@sveltejs/kit": "^2.21.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tauri-apps/cli": "^2.0.0",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "typescript": "^5.7.0",

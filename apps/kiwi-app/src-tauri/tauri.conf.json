@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "Kiwi",
+  "version": "0.0.1",
+  "identifier": "io.kiwistack.ui",
+  "build": {
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Kiwi",
+        "width": 1440,
+        "height": 900
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "nsis"],
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}
