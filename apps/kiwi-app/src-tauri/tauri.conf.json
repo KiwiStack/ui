@@ -4,7 +4,10 @@
   "version": "0.0.1",
   "identifier": "io.kiwistack.ui",
   "build": {
-    "frontendDist": "../build"
+    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "pnpm dev",
+    "frontendDist": "../build",
+    "devUrl": "http://localhost:1420"
   },
   "app": {
     "windows": [
