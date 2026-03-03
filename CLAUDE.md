@@ -130,12 +130,21 @@ pnpm --filter kiwi-app tauri build
 # Start web dev (when kiwi-web exists)
 pnpm --filter kiwi-web dev
 
+# Deploy to demo site
+./scripts/deploy-demo.sh
+
 # Type check everything
 pnpm -r typecheck
 
 # Lint
 pnpm -r lint
 ```
+
+## Release Rules
+
+- **Never create git tags or releases** unless the user explicitly asks for it.
+- Pushing to `main` does **not** trigger any CI build. Only `v*` tags trigger the release workflow.
+- During development, deploy changes to `demo.kiwistack.io` using `./scripts/deploy-demo.sh` for fast feedback.
 
 ## KiwiStack Context
 

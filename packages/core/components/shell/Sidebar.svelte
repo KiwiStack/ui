@@ -106,15 +106,13 @@
 	}
 	.icon-btn.active {
 		background: color-mix(in srgb, var(--svc-color) 15%, transparent);
-	}
-	.icon-btn.active .icon-mask {
-		background-color: var(--svc-color);
+		border: 1.5px solid var(--svc-color);
 	}
 	.icon-mask {
 		width: var(--icon-lg);
 		height: var(--icon-lg);
 		display: block;
-		background-color: var(--text-secondary);
+		background-color: var(--svc-color);
 		-webkit-mask-image: var(--icon-url);
 		mask-image: var(--icon-url);
 		-webkit-mask-size: contain;
@@ -124,12 +122,6 @@
 		-webkit-mask-position: center;
 		mask-position: center;
 		transition: background-color var(--transition-fast);
-	}
-	.icon-btn:hover .icon-mask {
-		background-color: var(--text-primary);
-	}
-	.icon-btn.active .icon-mask {
-		background-color: var(--svc-color);
 	}
 	.sidebar-bottom {
 		margin-top: auto;
