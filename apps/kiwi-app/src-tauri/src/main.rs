@@ -12,6 +12,9 @@ fn main() {
             commands::mail_move,
             commands::mail_delete,
             commands::mail_update,
+            commands::mail_download_attachment,
+            commands::mail_get_vacation,
+            commands::mail_set_vacation,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

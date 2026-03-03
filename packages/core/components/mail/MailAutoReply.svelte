@@ -1,7 +1,56 @@
 <script lang="ts">
 	import ServiceBadge from '../shared/ServiceBadge.svelte';
 	import ActionButton from '../shared/ActionButton.svelte';
-	import { autoReplyData } from '../../data/mail';
+	import { getMailService } from '../../services/index';
+	import { toast } from '../../services/toast.svelte';
+
+	let isEnabled = $state(false);
+	let useTimeRange = $state(false);
+	let fromDate = $state('');
+	let toDate = $state('');
+	let subject = $state('');
+	let textBody = $state('');
+	let loading = $state(true);
+	let saving = $state(false);
+
+	async function loadVacation() {
+		loading = true;
+		try {
+			const v = await getMailService().getVacation();
+			isEnabled = v.is_enabled;
+			fromDate = v.from_date ?? '';
+			toDate = v.to_date ?? '';
+			subject = v.subject ?? '';
+			textBody = v.text_body ?? '';
+			useTimeRange = !!(v.from_date || v.to_date);
+		} catch (e) {
+			toast.show('error', e instanceof Error ? e.message : 'Failed to load auto-reply settings');
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleApply() {
+		saving = true;
+		try {
+			await getMailService().setVacation({
+				is_enabled: isEnabled,
+				from_date: useTimeRange && fromDate ? fromDate : null,
+				to_date: useTimeRange && toDate ? toDate : null,
+				subject: subject || null,
+				text_body: textBody || null,
+				html_body: null,
+			});
+			toast.show('success', 'Auto-reply settings saved.');
+		} catch (e) {
+			toast.show('error', e instanceof Error ? e.message : 'Failed to save auto-reply settings');
+		} finally {
+			saving = false;
+		}
+	}
+
+	// Load on mount
+	loadVacation();
 
 	function iconUrl(name: string): string {
 		return `/icons/${name}.svg`;
@@ -13,50 +62,59 @@
 
 	<h1>Automatic Replies</h1>
 
-	<div class="radio-group">
-		<label class="radio-option">
-			<input type="radio" name="auto-reply" value="off" />
-			<span>Don't send automatic replies</span>
-		</label>
-		<label class="radio-option highlighted">
-			<input type="radio" name="auto-reply" value="on" checked />
-			<span>Send automatic replies</span>
-		</label>
-	</div>
+	{#if loading}
+		<div class="status-msg">Loading…</div>
+	{:else}
+		<div class="radio-group">
+			<label class="radio-option" class:highlighted={!isEnabled}>
+				<input type="radio" name="auto-reply" bind:group={isEnabled} value={false} />
+				<span>Don't send automatic replies</span>
+			</label>
+			<label class="radio-option" class:highlighted={isEnabled}>
+				<input type="radio" name="auto-reply" bind:group={isEnabled} value={true} />
+				<span>Send automatic replies</span>
+			</label>
+		</div>
 
-	<div class="divider"></div>
+		{#if isEnabled}
+			<div class="divider"></div>
 
-	<label class="checkbox-option highlighted">
-		<input type="checkbox" checked />
-		<span>Only during this time range</span>
-	</label>
+			<label class="checkbox-option" class:highlighted={useTimeRange}>
+				<input type="checkbox" bind:checked={useTimeRange} />
+				<span>Only during this time range</span>
+			</label>
 
-	<div class="field-row highlighted">
-		<label class="field-label">Start</label>
-		<div class="field-value">{autoReplyData.startDate}</div>
-	</div>
+			{#if useTimeRange}
+				<div class="field-row highlighted">
+					<label class="field-label">Start</label>
+					<input type="datetime-local" class="field-input" bind:value={fromDate} />
+				</div>
 
-	<div class="field-row highlighted">
-		<label class="field-label">End</label>
-		<div class="field-value">{autoReplyData.endDate}</div>
-	</div>
+				<div class="field-row highlighted">
+					<label class="field-label">End</label>
+					<input type="datetime-local" class="field-input" bind:value={toDate} />
+				</div>
+			{/if}
 
-	<div class="divider"></div>
+			<div class="divider"></div>
 
-	<label class="message-label">Message</label>
-	<div class="message-field highlighted">
-		<p>{autoReplyData.message}</p>
-	</div>
+			<label class="field-label-block">Subject</label>
+			<input type="text" class="text-input" bind:value={subject} placeholder="Auto-reply subject" />
 
-	<div class="button-row">
-		<ActionButton label="Apply" variant="primary" />
-		<ActionButton label="Edit" variant="secondary" />
-	</div>
+			<label class="field-label-block">Message</label>
+			<textarea class="message-input" bind:value={textBody} rows="5" placeholder="Your auto-reply message..."></textarea>
+		{/if}
+
+		<div class="button-row">
+			<ActionButton label={saving ? 'Saving…' : 'Apply'} variant="primary" onClick={handleApply} />
+		</div>
+	{/if}
 </div>
 
 <style>
 	.auto-reply {
 		padding: var(--space-6) var(--space-8);
+		max-width: 600px;
 	}
 	h1 {
 		font-family: var(--font-heading);
@@ -65,6 +123,13 @@
 		line-height: 1.2;
 		color: var(--text-primary);
 		margin: var(--space-4) 0 var(--space-5);
+	}
+	.status-msg {
+		padding: var(--space-4);
+		color: var(--text-secondary);
+		font-family: var(--font-body);
+		font-size: 0.9rem;
+		text-align: center;
 	}
 	.radio-group {
 		display: flex;
@@ -112,33 +177,45 @@
 		color: var(--text-muted);
 		min-width: 40px;
 	}
-	.field-value {
-		font-family: var(--font-mono);
-		font-weight: 500;
-		font-size: 0.9rem;
-		color: var(--text-primary);
-		background: var(--app-bg-surface);
-		padding: var(--space-2) var(--space-3);
-		border-radius: 4px;
-	}
-	.message-label {
+	.field-label-block {
+		display: block;
 		font-family: var(--font-body);
 		font-size: 0.95rem;
 		color: var(--text-muted);
-		display: block;
-		margin-bottom: var(--space-3);
+		margin-bottom: var(--space-2);
+		margin-top: var(--space-3);
 	}
-	.message-field {
-		padding: var(--space-4);
-		border-radius: 8px;
-		border: 1.5px solid transparent;
+	.field-input {
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+		color: var(--text-primary);
+		background: var(--app-bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: 4px;
+		padding: var(--space-2) var(--space-3);
+	}
+	.text-input {
+		width: 100%;
+		font-family: var(--font-body);
+		font-size: 0.95rem;
+		color: var(--text-primary);
+		background: var(--app-bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		padding: var(--space-2) var(--space-3);
+		margin-bottom: var(--space-2);
+	}
+	.message-input {
+		width: 100%;
 		font-family: var(--font-body);
 		font-size: 0.95rem;
 		line-height: 1.6;
 		color: var(--text-primary);
-	}
-	.message-field p {
-		margin: 0;
+		background: var(--app-bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		padding: var(--space-3) var(--space-4);
+		resize: vertical;
 	}
 	.button-row {
 		display: flex;

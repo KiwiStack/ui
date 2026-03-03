@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { MailService } from '@kiwi/core/services/mail';
-import type { EmailSummary, EmailDetail, SearchParams, SendParams, SendResult, Mailbox, EmailUpdate } from '@kiwi/core/services/types';
+import type { EmailSummary, EmailDetail, SearchParams, SendParams, SendResult, Mailbox, EmailUpdate, VacationResponse } from '@kiwi/core/services/types';
 
 export const mailService: MailService = {
 	async search(params: SearchParams): Promise<EmailSummary[]> {
@@ -29,5 +29,17 @@ export const mailService: MailService = {
 
 	async updateEmail(id: string, updates: EmailUpdate): Promise<void> {
 		await invoke('mail_update', { id, updates });
+	},
+
+	async downloadAttachment(emailId: string, blobId: string, filename: string): Promise<void> {
+		await invoke('mail_download_attachment', { emailId, blobId, filename });
+	},
+
+	async getVacation(): Promise<VacationResponse> {
+		return invoke<VacationResponse>('mail_get_vacation');
+	},
+
+	async setVacation(vacation: VacationResponse): Promise<void> {
+		await invoke('mail_set_vacation', { vacation });
 	},
 };

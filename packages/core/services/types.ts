@@ -9,6 +9,7 @@ export interface Attachment {
 	name: string;
 	type: string;
 	size: number;
+	blob_id?: string;
 }
 
 export interface EmailSummary {
@@ -42,6 +43,8 @@ export interface SearchParams {
 	after?: string;
 	before?: string;
 	limit?: number;
+	sort_by?: string;
+	ascending?: boolean;
 }
 
 export interface SendParams {
@@ -71,4 +74,13 @@ export interface EmailUpdate {
 export interface SendResult {
 	id: string;
 	status: string;
+}
+
+export interface VacationResponse {
+	is_enabled: boolean;
+	from_date: string | null;
+	to_date: string | null;
+	subject: string | null;
+	text_body: string | null;
+	html_body: string | null;
 }

@@ -78,6 +78,16 @@
 			: undefined
 	);
 
+	// Build tab labels with unread badges for mail
+	let mailTabsWithBadges = $derived(
+		activeService === 'mail'
+			? [...currentService.menus].map((tab) => {
+					const unread = mailboxStore.unreadForTab(tab);
+					return unread > 0 ? `${tab} (${unread})` : tab;
+				})
+			: [...currentService.menus]
+	);
+
 	const allMessages: Record<ServiceId, { role: 'user' | 'ai'; content: string }[]> = {
 		mail: mailMessages,
 		chat: chatMessages,
@@ -111,7 +121,9 @@
 	}
 
 	function handleMenuChange(tab: string) {
-		activeMenus[activeService] = tab;
+		// Strip badge suffix to get real tab name
+		const realTab = tab.replace(/ \(\d+\)$/, '');
+		activeMenus[activeService] = realTab;
 		selectedEmailId = null;
 		composeMode = null;
 	}
@@ -124,6 +136,7 @@
 	function handleComposeDone() {
 		composeMode = null;
 		refreshKey++;
+		mailboxStore.refresh();
 	}
 
 	function handleReply(email: EmailDetail) {
@@ -145,9 +158,15 @@
 			selectedEmailId = null;
 			composeMode = null;
 			refreshKey++;
+			mailboxStore.refresh();
 		} catch (e) {
 			toast.show('error', e instanceof Error ? e.message : 'Failed to delete email.');
 		}
+	}
+
+	function handleRefresh() {
+		refreshKey++;
+		mailboxStore.refresh();
 	}
 </script>
 
@@ -155,8 +174,11 @@
 	<Sidebar {activeService} onServiceChange={handleServiceChange} />
 
 	<Menubar
-		tabs={[...currentService.menus]}
-		activeTab={currentMenu}
+		tabs={mailTabsWithBadges}
+		activeTab={activeService === 'mail' ? (() => {
+			const unread = mailboxStore.unreadForTab(currentMenu);
+			return unread > 0 ? `${currentMenu} (${unread})` : currentMenu;
+		})() : currentMenu}
 		serviceColor={currentService.color}
 		onTabChange={handleMenuChange}
 	/>
@@ -170,6 +192,7 @@
 				onEmailChange={(id) => { selectedEmailId = id; composeMode = null; }}
 				mailboxId={currentMailboxId}
 				onCompose={handleCompose}
+				onRefresh={handleRefresh}
 				{refreshKey}
 			/>
 		{:else if activeService === 'chat'}
@@ -199,6 +222,7 @@
 				onReplyAll={handleReplyAll}
 				onForward={handleForward}
 				onDelete={handleDelete}
+				onRefresh={handleRefresh}
 			/>
 		{:else if activeService === 'mail'}
 			<div class="empty-state">Select an email to read</div>

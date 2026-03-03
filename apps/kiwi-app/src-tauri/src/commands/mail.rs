@@ -15,6 +15,8 @@ pub struct Attachment {
     #[serde(rename = "type")]
     pub content_type: String,
     pub size: u64,
+    #[serde(default)]
+    pub blob_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,6 +59,10 @@ pub struct SearchParams {
     pub after: Option<String>,
     pub before: Option<String>,
     pub limit: Option<u32>,
+    #[serde(default)]
+    pub sort_by: Option<String>,
+    #[serde(default)]
+    pub ascending: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -100,6 +106,21 @@ pub struct EmailUpdate {
     pub is_read: Option<bool>,
     #[serde(default)]
     pub is_flagged: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VacationResponse {
+    pub is_enabled: bool,
+    #[serde(default)]
+    pub from_date: Option<String>,
+    #[serde(default)]
+    pub to_date: Option<String>,
+    #[serde(default)]
+    pub subject: Option<String>,
+    #[serde(default)]
+    pub text_body: Option<String>,
+    #[serde(default)]
+    pub html_body: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -233,6 +254,76 @@ pub async fn mail_update(id: String, updates: EmailUpdate) -> Result<(), String>
     let resp = client
         .patch(format!("{MAIL_API}/api/v1/mail/{id}"))
         .json(&updates)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mail_download_attachment(
+    email_id: String,
+    blob_id: String,
+    filename: String,
+) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!(
+            "{MAIL_API}/api/v1/mail/{email_id}/attachments/{blob_id}"
+        ))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    let bytes = resp.bytes().await.map_err(|e| format!("Read error: {e}"))?;
+
+    // Save to user's download directory
+    if let Some(download_dir) = dirs::download_dir() {
+        let path = download_dir.join(&filename);
+        std::fs::write(&path, &bytes).map_err(|e| format!("Write error: {e}"))?;
+    } else {
+        return Err("Could not determine download directory".to_string());
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mail_get_vacation() -> Result<VacationResponse, String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{MAIL_API}/api/v1/mail/vacation"))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    let envelope: ApiResponse<VacationResponse> = resp
+        .json()
+        .await
+        .map_err(|e| format!("Parse error: {e}"))?;
+
+    Ok(envelope.data)
+}
+
+#[tauri::command]
+pub async fn mail_set_vacation(vacation: VacationResponse) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .put(format!("{MAIL_API}/api/v1/mail/vacation"))
+        .json(&vacation)
         .send()
         .await
         .map_err(|e| format!("Request failed: {e}"))?;

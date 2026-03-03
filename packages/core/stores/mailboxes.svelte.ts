@@ -32,10 +32,26 @@ export const mailboxStore = {
 		}
 	},
 
+	async refresh(): Promise<void> {
+		try {
+			mailboxes = await getMailService().listMailboxes();
+			loaded = true;
+		} catch {
+			// Silently fail
+		}
+	},
+
 	mailboxIdForTab(tabName: string): string | undefined {
 		const role = TAB_ROLE_MAP[tabName];
 		if (!role) return undefined;
 		return mailboxes.find((m) => m.role === role)?.id;
+	},
+
+	unreadForTab(tabName: string): number {
+		const role = TAB_ROLE_MAP[tabName];
+		if (!role) return 0;
+		const mb = mailboxes.find((m) => m.role === role);
+		return mb?.unread_emails ?? 0;
 	},
 
 	reset(): void {

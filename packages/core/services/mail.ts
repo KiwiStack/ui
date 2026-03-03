@@ -1,4 +1,4 @@
-import type { EmailSummary, EmailDetail, SearchParams, SendParams, SendResult, Mailbox, EmailUpdate } from './types';
+import type { EmailSummary, EmailDetail, SearchParams, SendParams, SendResult, Mailbox, EmailUpdate, VacationResponse } from './types';
 
 export interface MailService {
 	search(params: SearchParams): Promise<EmailSummary[]>;
@@ -8,4 +8,7 @@ export interface MailService {
 	moveEmail(id: string, mailboxId: string): Promise<void>;
 	deleteEmail(id: string): Promise<void>;
 	updateEmail(id: string, updates: EmailUpdate): Promise<void>;
+	downloadAttachment(emailId: string, blobId: string, filename: string): Promise<void>;
+	getVacation(): Promise<VacationResponse>;
+	setVacation(vacation: VacationResponse): Promise<void>;
 }
