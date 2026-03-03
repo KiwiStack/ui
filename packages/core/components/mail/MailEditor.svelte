@@ -3,9 +3,10 @@
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 
-	let { initialContent = '', onReady }: {
+	let { initialContent = '', onReady, onUpdate }: {
 		initialContent?: string;
 		onReady?: (editor: Editor) => void;
+		onUpdate?: (html: string) => void;
 	} = $props();
 
 	let editorElement: HTMLDivElement;
@@ -35,6 +36,9 @@
 			onTransaction: () => {
 				updateToolbar();
 			},
+			onUpdate: ({ editor: e }) => {
+				if (onUpdate) onUpdate(e.getHTML());
+			},
 		});
 		if (onReady) onReady(editor);
 	});
@@ -43,13 +47,6 @@
 		editor?.destroy();
 	});
 
-	export function getHTML(): string {
-		return editor?.getHTML() ?? '';
-	}
-
-	export function getEditor(): Editor | null {
-		return editor;
-	}
 </script>
 
 <div class="editor-wrapper">

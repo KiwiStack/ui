@@ -21,12 +21,12 @@
 	let to = $state('');
 	let cc = $state('');
 	let subject = $state('');
-	let editorContent = $state('');
-	let editorInstance: Editor | null = $state(null);
+	let bodyHtml = $state('');
+	let editorRef: Editor | null = $state(null);
+	let pendingContent: string | null = $state(null);
 	let inReplyTo = $state<string | undefined>(undefined);
 	let references = $state<string | undefined>(undefined);
 	let sending = $state(false);
-	let editorKey = $state(0);
 
 	// Derive heading text
 	let heading = $derived(
@@ -54,9 +54,19 @@
 			minute: '2-digit',
 		});
 
-		const bodyHtml = email.body || '';
+		const originalBody = email.body || '';
 
-		return `<br><hr><p><strong>--- Original Message ---</strong><br>From: ${from}<br>Date: ${date}<br>Subject: ${escapeHtml(email.subject)}</p><blockquote>${bodyHtml}</blockquote>`;
+		return `<br><hr><p><strong>--- Original Message ---</strong><br>From: ${from}<br>Date: ${date}<br>Subject: ${escapeHtml(email.subject)}</p><blockquote>${originalBody}</blockquote>`;
+	}
+
+	function applyContent(html: string) {
+		if (editorRef) {
+			editorRef.commands.setContent(html);
+			bodyHtml = html;
+		} else {
+			pendingContent = html;
+			bodyHtml = html;
+		}
 	}
 
 	// Pre-fill when mode changes
@@ -65,10 +75,9 @@
 			to = '';
 			cc = '';
 			subject = '';
-			editorContent = '';
 			inReplyTo = undefined;
 			references = undefined;
-			editorKey++;
+			applyContent('');
 			return;
 		}
 
@@ -91,19 +100,17 @@
 			}
 
 			subject = email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`;
-			editorContent = `<p><br></p>${quotedHtml}`;
 			inReplyTo = email.message_id;
 			references = email.message_id;
+			applyContent(`<p><br></p>${quotedHtml}`);
 		} else {
 			to = '';
 			cc = '';
 			subject = email.subject.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject}`;
-			editorContent = `<p><br></p>${quotedHtml}`;
 			inReplyTo = undefined;
 			references = undefined;
+			applyContent(`<p><br></p>${quotedHtml}`);
 		}
-
-		editorKey++;
 	});
 
 	function parseAddresses(input: string): string[] {
@@ -114,7 +121,16 @@
 	}
 
 	function handleEditorReady(editor: Editor) {
-		editorInstance = editor;
+		editorRef = editor;
+		if (pendingContent !== null) {
+			editor.commands.setContent(pendingContent);
+			bodyHtml = pendingContent;
+			pendingContent = null;
+		}
+	}
+
+	function handleEditorUpdate(html: string) {
+		bodyHtml = html;
 	}
 
 	async function handleSend() {
@@ -124,7 +140,7 @@
 		}
 		sending = true;
 		try {
-			const body = editorInstance?.getHTML() ?? '';
+			const body = bodyHtml;
 			const result = await getMailService().send({
 				to: parseAddresses(to),
 				cc: cc.trim() ? parseAddresses(cc) : undefined,
@@ -170,9 +186,7 @@
 
 	<div class="field">
 		<label class="field-label">Body</label>
-		{#key editorKey}
-			<MailEditor initialContent={editorContent} onReady={handleEditorReady} />
-		{/key}
+		<MailEditor onReady={handleEditorReady} onUpdate={handleEditorUpdate} />
 	</div>
 
 	<div class="button-row">

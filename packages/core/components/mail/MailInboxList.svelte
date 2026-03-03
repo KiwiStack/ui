@@ -48,9 +48,15 @@
 		return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 	}
 
-	function senderName(from: EmailSummary['from']): string {
-		if (from.length === 0) return 'Unknown';
-		return from[0].name || from[0].email;
+	function senderName(email: EmailSummary): string {
+		if (email.from.length === 0) {
+			// No sender — likely a draft; show first recipient instead
+			if (email.to.length > 0) {
+				return `To: ${email.to[0].name || email.to[0].email}`;
+			}
+			return 'Draft';
+		}
+		return email.from[0].name || email.from[0].email;
 	}
 </script>
 
@@ -74,7 +80,7 @@
 				onclick={() => onEmailChange(email.id)}
 			>
 				<div class="email-header">
-					<span class="sender">{senderName(email.from)}</span>
+					<span class="sender">{senderName(email)}</span>
 					<span class="time">{formatTime(email.received_at)}</span>
 				</div>
 				<div class="subject">{email.subject}</div>
