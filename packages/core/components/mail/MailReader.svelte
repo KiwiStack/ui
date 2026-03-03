@@ -1,21 +1,28 @@
 <script lang="ts">
 	import { getMailService } from '../../services/index';
+	import { toast } from '../../services/toast.svelte';
 	import type { EmailDetail } from '../../services/types';
 	import ServiceBadge from '../shared/ServiceBadge.svelte';
 
-	let { emailId }: { emailId: string } = $props();
+	let { emailId, onReply, onReplyAll, onForward, onDelete }: {
+		emailId: string;
+		onReply?: (email: EmailDetail) => void;
+		onReplyAll?: (email: EmailDetail) => void;
+		onForward?: (email: EmailDetail) => void;
+		onDelete?: (id: string) => void;
+	} = $props();
 
 	let email: EmailDetail | null = $state(null);
 	let loading = $state(true);
-	let error: string | null = $state(null);
 
 	async function loadEmail(id: string) {
 		loading = true;
-		error = null;
 		try {
 			email = await getMailService().read(id);
+			// Auto-mark as read (fire-and-forget)
+			getMailService().updateEmail(id, { is_read: true }).catch(() => {});
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load email';
+			toast.show('error', e instanceof Error ? e.message : 'Failed to load email');
 		} finally {
 			loading = false;
 		}
@@ -50,10 +57,35 @@
 <div class="mail-reader">
 	{#if loading}
 		<div class="status-msg">Loading…</div>
-	{:else if error}
-		<div class="status-msg error">{error}</div>
 	{:else if email}
 		<ServiceBadge label="KIWI MAIL" icon="/icons/mail.svg" color="#FF7043" />
+
+		<div class="toolbar">
+			{#if onReply}
+				<button class="toolbar-btn" onclick={() => onReply(email!)} title="Reply">
+					<span class="toolbar-icon" style="--icon-url: url('/icons/reply.svg')"></span>
+					Reply
+				</button>
+			{/if}
+			{#if onReplyAll}
+				<button class="toolbar-btn" onclick={() => onReplyAll(email!)} title="Reply All">
+					<span class="toolbar-icon" style="--icon-url: url('/icons/reply-all.svg')"></span>
+					Reply All
+				</button>
+			{/if}
+			{#if onForward}
+				<button class="toolbar-btn" onclick={() => onForward(email!)} title="Forward">
+					<span class="toolbar-icon" style="--icon-url: url('/icons/forward.svg')"></span>
+					Forward
+				</button>
+			{/if}
+			{#if onDelete}
+				<button class="toolbar-btn toolbar-btn--danger" onclick={() => onDelete(email!.id)} title="Delete">
+					<span class="toolbar-icon" style="--icon-url: url('/icons/trash.svg')"></span>
+					Delete
+				</button>
+			{/if}
+		</div>
 
 		<h1>{email.subject}</h1>
 
@@ -110,8 +142,45 @@
 		font-size: 0.95rem;
 		text-align: center;
 	}
-	.status-msg.error {
-		color: var(--pop-coral);
+	.toolbar {
+		display: flex;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+		padding: var(--space-2) 0;
+	}
+	.toolbar-btn {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		padding: var(--space-1) var(--space-3);
+		background: var(--app-bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		font-family: var(--font-body);
+		font-size: 0.8rem;
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+	.toolbar-btn:hover {
+		background: var(--app-bg-hover);
+		color: var(--text-primary);
+	}
+	.toolbar-btn--danger:hover {
+		color: #ef4444;
+	}
+	.toolbar-icon {
+		width: 14px;
+		height: 14px;
+		display: block;
+		background-color: currentColor;
+		-webkit-mask-image: var(--icon-url);
+		mask-image: var(--icon-url);
+		-webkit-mask-size: contain;
+		mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		mask-repeat: no-repeat;
+		flex-shrink: 0;
 	}
 	h1 {
 		font-family: var(--font-heading);

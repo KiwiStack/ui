@@ -1,29 +1,37 @@
 <script lang="ts">
 	import { getMailService } from '../../services/index';
+	import { toast } from '../../services/toast.svelte';
 	import type { EmailSummary } from '../../services/types';
 
-	let { activeEmail, onEmailChange }: {
+	let { activeEmail, onEmailChange, mailboxId, onCompose, refreshKey = 0 }: {
 		activeEmail: string | null;
 		onEmailChange: (id: string) => void;
+		mailboxId?: string;
+		onCompose?: () => void;
+		refreshKey?: number;
 	} = $props();
 
 	let emails: EmailSummary[] = $state([]);
 	let loading = $state(true);
-	let error: string | null = $state(null);
 
 	async function loadEmails() {
 		loading = true;
-		error = null;
 		try {
-			emails = await getMailService().search({ limit: 50 });
+			emails = await getMailService().search({
+				mailbox: mailboxId,
+				limit: 50,
+			});
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load emails';
+			toast.show('error', e instanceof Error ? e.message : 'Failed to load emails');
 		} finally {
 			loading = false;
 		}
 	}
 
 	$effect(() => {
+		// Re-fetch when mailboxId or refreshKey changes
+		void mailboxId;
+		void refreshKey;
 		loadEmails();
 	});
 
@@ -47,11 +55,14 @@
 </script>
 
 <div class="inbox-list">
+	{#if onCompose}
+		<button class="compose-btn" onclick={onCompose}>
+			<span class="compose-icon" style="--icon-url: url('/icons/compose.svg')"></span>
+			New Message
+		</button>
+	{/if}
 	{#if loading}
 		<div class="status-msg">Loading…</div>
-	{:else if error}
-		<div class="status-msg error">{error}</div>
-		<button class="retry-btn" onclick={loadEmails}>Retry</button>
 	{:else if emails.length === 0}
 		<div class="status-msg">No emails</div>
 	{:else}
@@ -59,6 +70,7 @@
 			<button
 				class="email-item"
 				class:active={activeEmail === email.id}
+				class:unread={!email.is_read}
 				onclick={() => onEmailChange(email.id)}
 			>
 				<div class="email-header">
@@ -76,26 +88,43 @@
 	.inbox-list {
 		padding: var(--space-2) 0;
 	}
+	.compose-btn {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: var(--space-2) var(--space-3);
+		padding: var(--space-2) var(--space-4);
+		background: var(--pop-coral);
+		color: #fff;
+		border-radius: 6px;
+		font-family: var(--font-body);
+		font-size: 0.85rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity var(--transition-fast);
+	}
+	.compose-btn:hover {
+		opacity: 0.9;
+	}
+	.compose-icon {
+		width: 14px;
+		height: 14px;
+		display: block;
+		background-color: #fff;
+		-webkit-mask-image: var(--icon-url);
+		mask-image: var(--icon-url);
+		-webkit-mask-size: contain;
+		mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		mask-repeat: no-repeat;
+		flex-shrink: 0;
+	}
 	.status-msg {
 		padding: var(--space-4);
 		color: var(--text-secondary);
 		font-family: var(--font-body);
 		font-size: 0.9rem;
 		text-align: center;
-	}
-	.status-msg.error {
-		color: var(--pop-coral);
-	}
-	.retry-btn {
-		display: block;
-		margin: 0 auto;
-		padding: var(--space-2) var(--space-4);
-		color: var(--pop-coral);
-		font-family: var(--font-body);
-		font-size: 0.85rem;
-		border: 1px solid var(--pop-coral);
-		border-radius: 4px;
-		cursor: pointer;
 	}
 	.email-item {
 		display: block;
@@ -114,6 +143,10 @@
 		background: var(--app-bg-surface);
 		color: var(--text-primary);
 		border-left: 3px solid var(--pop-coral);
+	}
+	.email-item.unread .sender,
+	.email-item.unread .subject {
+		font-weight: 700;
 	}
 	.email-header {
 		display: flex;

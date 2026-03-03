@@ -1,14 +1,110 @@
 <script lang="ts">
 	import { getMailService } from '../../services/index';
+	import { toast } from '../../services/toast.svelte';
+	import type { EmailDetail } from '../../services/types';
+	import type { Editor } from '@tiptap/core';
 	import ServiceBadge from '../shared/ServiceBadge.svelte';
 	import ActionButton from '../shared/ActionButton.svelte';
+	import MailEditor from './MailEditor.svelte';
+
+	type ComposeMode =
+		| { type: 'new' }
+		| { type: 'reply'; email: EmailDetail; all: boolean }
+		| { type: 'forward'; email: EmailDetail }
+		| null;
+
+	let { mode = null, onDone }: {
+		mode?: ComposeMode;
+		onDone?: () => void;
+	} = $props();
 
 	let to = $state('');
 	let cc = $state('');
 	let subject = $state('');
-	let body = $state('');
+	let editorContent = $state('');
+	let editorInstance: Editor | null = $state(null);
+	let inReplyTo = $state<string | undefined>(undefined);
+	let references = $state<string | undefined>(undefined);
 	let sending = $state(false);
-	let feedback: { type: 'success' | 'error'; message: string } | null = $state(null);
+	let editorKey = $state(0);
+
+	// Derive heading text
+	let heading = $derived(
+		mode?.type === 'reply' ? 'Reply' :
+		mode?.type === 'forward' ? 'Forward' :
+		'New Message'
+	);
+
+	function escapeHtml(text: string): string {
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/\n/g, '<br>');
+	}
+
+	function formatQuotedHtml(email: EmailDetail): string {
+		const from = email.from.map(a => a.name ? `${a.name} &lt;${a.email}&gt;` : a.email).join(', ');
+		const date = new Date(email.received_at).toLocaleString([], {
+			weekday: 'short',
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		});
+
+		const bodyHtml = email.body || '';
+
+		return `<br><hr><p><strong>--- Original Message ---</strong><br>From: ${from}<br>Date: ${date}<br>Subject: ${escapeHtml(email.subject)}</p><blockquote>${bodyHtml}</blockquote>`;
+	}
+
+	// Pre-fill when mode changes
+	$effect(() => {
+		if (!mode || mode.type === 'new') {
+			to = '';
+			cc = '';
+			subject = '';
+			editorContent = '';
+			inReplyTo = undefined;
+			references = undefined;
+			editorKey++;
+			return;
+		}
+
+		const email = mode.type === 'reply' ? mode.email : mode.email;
+		const quotedHtml = formatQuotedHtml(email);
+
+		if (mode.type === 'reply') {
+			to = email.from.map(a => a.email).join(', ');
+
+			if (mode.all) {
+				const allRecipients = [
+					...email.to.map(a => a.email),
+					...email.cc.map(a => a.email),
+				].filter(addr => !email.from.some(f => f.email === addr));
+				const toAddrs = email.from.map(a => a.email);
+				const ccAddrs = allRecipients.filter(a => !toAddrs.includes(a));
+				cc = [...new Set(ccAddrs)].join(', ');
+			} else {
+				cc = '';
+			}
+
+			subject = email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`;
+			editorContent = `<p><br></p>${quotedHtml}`;
+			inReplyTo = email.message_id;
+			references = email.message_id;
+		} else {
+			to = '';
+			cc = '';
+			subject = email.subject.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject}`;
+			editorContent = `<p><br></p>${quotedHtml}`;
+			inReplyTo = undefined;
+			references = undefined;
+		}
+
+		editorKey++;
+	});
 
 	function parseAddresses(input: string): string[] {
 		return input
@@ -17,43 +113,45 @@
 			.filter((s) => s.length > 0);
 	}
 
+	function handleEditorReady(editor: Editor) {
+		editorInstance = editor;
+	}
+
 	async function handleSend() {
 		if (!to.trim() || !subject.trim()) {
-			feedback = { type: 'error', message: 'To and Subject are required.' };
+			toast.show('error', 'To and Subject are required.');
 			return;
 		}
 		sending = true;
-		feedback = null;
 		try {
+			const body = editorInstance?.getHTML() ?? '';
 			const result = await getMailService().send({
 				to: parseAddresses(to),
 				cc: cc.trim() ? parseAddresses(cc) : undefined,
 				subject,
 				body,
+				in_reply_to: inReplyTo,
+				references: references,
+				format: 'html',
 			});
-			feedback = { type: 'success', message: `Email sent (${result.status}).` };
-			to = '';
-			cc = '';
-			subject = '';
-			body = '';
+			toast.show('success', `Email sent (${result.status}).`);
+			if (onDone) onDone();
 		} catch (e) {
-			feedback = { type: 'error', message: e instanceof Error ? e.message : 'Failed to send.' };
+			toast.show('error', e instanceof Error ? e.message : 'Failed to send.');
 		} finally {
 			sending = false;
 		}
+	}
+
+	function handleCancel() {
+		if (onDone) onDone();
 	}
 </script>
 
 <div class="compose">
 	<ServiceBadge label="KIWI MAIL" icon="/icons/mail.svg" color="#FF7043" />
 
-	<h1>New Message</h1>
-
-	{#if feedback}
-		<div class="feedback" class:success={feedback.type === 'success'} class:error={feedback.type === 'error'}>
-			{feedback.message}
-		</div>
-	{/if}
+	<h1>{heading}</h1>
 
 	<div class="field">
 		<label class="field-label" for="compose-to">To</label>
@@ -71,12 +169,17 @@
 	</div>
 
 	<div class="field">
-		<label class="field-label" for="compose-body">Body</label>
-		<textarea id="compose-body" bind:value={body} rows="12" placeholder="Write your message…"></textarea>
+		<label class="field-label">Body</label>
+		{#key editorKey}
+			<MailEditor initialContent={editorContent} onReady={handleEditorReady} />
+		{/key}
 	</div>
 
 	<div class="button-row">
 		<ActionButton label={sending ? 'Sending…' : 'Send'} variant="primary" onClick={handleSend} />
+		{#if onDone}
+			<button class="cancel-btn" onclick={handleCancel}>Cancel</button>
+		{/if}
 	</div>
 </div>
 
@@ -93,23 +196,6 @@
 		color: var(--text-primary);
 		margin: var(--space-4) 0 var(--space-5);
 	}
-	.feedback {
-		padding: var(--space-3) var(--space-4);
-		border-radius: 6px;
-		font-family: var(--font-body);
-		font-size: 0.9rem;
-		margin-bottom: var(--space-4);
-	}
-	.feedback.success {
-		background: rgba(124, 179, 66, 0.15);
-		color: var(--kiwi-bright);
-		border: 1px solid var(--kiwi-green);
-	}
-	.feedback.error {
-		background: rgba(255, 112, 67, 0.15);
-		color: var(--pop-coral);
-		border: 1px solid var(--pop-coral);
-	}
 	.field {
 		margin-bottom: var(--space-4);
 	}
@@ -120,7 +206,7 @@
 		color: var(--text-muted);
 		margin-bottom: var(--space-1);
 	}
-	input, textarea {
+	input {
 		width: 100%;
 		padding: var(--space-3) var(--space-4);
 		background: var(--app-bg-surface);
@@ -132,14 +218,28 @@
 		outline: none;
 		transition: border-color var(--transition-fast);
 	}
-	input:focus, textarea:focus {
+	input:focus {
 		border-color: var(--pop-coral);
-	}
-	textarea {
-		resize: vertical;
-		line-height: 1.6;
 	}
 	.button-row {
 		margin-top: var(--space-5);
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+	}
+	.cancel-btn {
+		padding: var(--space-2) var(--space-4);
+		background: transparent;
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		font-family: var(--font-body);
+		font-size: 0.85rem;
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+	.cancel-btn:hover {
+		background: var(--app-bg-hover);
+		color: var(--text-primary);
 	}
 </style>

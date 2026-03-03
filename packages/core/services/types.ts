@@ -18,6 +18,8 @@ export interface EmailSummary {
 	subject: string;
 	received_at: string;
 	preview: string;
+	is_read: boolean;
+	is_flagged: boolean;
 }
 
 export interface EmailDetail {
@@ -29,6 +31,8 @@ export interface EmailDetail {
 	received_at: string;
 	body: string;
 	attachments: Attachment[];
+	message_id?: string;
+	in_reply_to?: string;
 }
 
 export interface SearchParams {
@@ -46,6 +50,22 @@ export interface SendParams {
 	bcc?: string[];
 	subject: string;
 	body: string;
+	in_reply_to?: string;
+	references?: string;
+	format?: 'text' | 'html';
+}
+
+export interface Mailbox {
+	id: string;
+	name: string;
+	role: string | null;
+	total_emails: number;
+	unread_emails: number;
+}
+
+export interface EmailUpdate {
+	is_read?: boolean;
+	is_flagged?: boolean;
 }
 
 export interface SendResult {

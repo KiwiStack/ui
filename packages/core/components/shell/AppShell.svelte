@@ -12,6 +12,7 @@
 	import Menubar from './Menubar.svelte';
 	import ListPane from './ListPane.svelte';
 	import AssistantPanel from './AssistantPanel.svelte';
+	import ToastContainer from './ToastContainer.svelte';
 
 	// Service-specific components
 	import MailInboxList from '../mail/MailInboxList.svelte';
@@ -32,6 +33,18 @@
 	import SearchList from '../search/SearchList.svelte';
 	import SearchResults from '../search/SearchResults.svelte';
 
+	import { getMailService } from '../../services/index';
+	import { mailboxStore } from '../../stores/mailboxes.svelte';
+	import { toast } from '../../services/toast.svelte';
+	import type { EmailDetail } from '../../services/types';
+
+	// --- Compose mode ---
+	type ComposeMode =
+		| { type: 'new' }
+		| { type: 'reply'; email: EmailDetail; all: boolean }
+		| { type: 'forward'; email: EmailDetail }
+		| null;
+
 	let activeService: ServiceId = $state('mail');
 	let activeMenus: Record<ServiceId, string> = $state({
 		mail: 'Inbox',
@@ -45,6 +58,8 @@
 
 	// Per-service list selection state
 	let selectedEmailId: string | null = $state(null);
+	let composeMode: ComposeMode = $state(null);
+	let refreshKey = $state(0);
 	let mailConfigItem = $state('auto-reply');
 	let chatChannel = $state('engineering');
 	let meetMeeting = $state('sprint-review');
@@ -55,6 +70,13 @@
 
 	let currentService = $derived(services[activeService]);
 	let currentMenu = $derived(activeMenus[activeService]);
+
+	// Derive current mailbox ID from active tab
+	let currentMailboxId = $derived(
+		activeService === 'mail' && currentMenu !== 'Configuration'
+			? mailboxStore.mailboxIdForTab(currentMenu)
+			: undefined
+	);
 
 	const allMessages: Record<ServiceId, { role: 'user' | 'ai'; content: string }[]> = {
 		mail: mailMessages,
@@ -76,12 +98,56 @@
 		search: searchActions,
 	};
 
+	// Load mailboxes when mail service becomes active
+	$effect(() => {
+		if (activeService === 'mail') {
+			mailboxStore.load();
+		}
+	});
+
 	function handleServiceChange(id: ServiceId) {
 		activeService = id;
+		composeMode = null;
 	}
 
 	function handleMenuChange(tab: string) {
 		activeMenus[activeService] = tab;
+		selectedEmailId = null;
+		composeMode = null;
+	}
+
+	function handleCompose() {
+		composeMode = { type: 'new' };
+		selectedEmailId = null;
+	}
+
+	function handleComposeDone() {
+		composeMode = null;
+		refreshKey++;
+	}
+
+	function handleReply(email: EmailDetail) {
+		composeMode = { type: 'reply', email, all: false };
+	}
+
+	function handleReplyAll(email: EmailDetail) {
+		composeMode = { type: 'reply', email, all: true };
+	}
+
+	function handleForward(email: EmailDetail) {
+		composeMode = { type: 'forward', email };
+	}
+
+	async function handleDelete(id: string) {
+		try {
+			await getMailService().deleteEmail(id);
+			toast.show('success', 'Email deleted.');
+			selectedEmailId = null;
+			composeMode = null;
+			refreshKey++;
+		} catch (e) {
+			toast.show('error', e instanceof Error ? e.message : 'Failed to delete email.');
+		}
 	}
 </script>
 
@@ -99,7 +165,13 @@
 		{#if activeService === 'mail' && currentMenu === 'Configuration'}
 			<MailConfigList activeItem={mailConfigItem} onItemChange={(id) => mailConfigItem = id} />
 		{:else if activeService === 'mail'}
-			<MailInboxList activeEmail={selectedEmailId} onEmailChange={(id) => selectedEmailId = id} />
+			<MailInboxList
+				activeEmail={selectedEmailId}
+				onEmailChange={(id) => { selectedEmailId = id; composeMode = null; }}
+				mailboxId={currentMailboxId}
+				onCompose={handleCompose}
+				{refreshKey}
+			/>
 		{:else if activeService === 'chat'}
 			<ChatChannelList activeChannel={chatChannel} onChannelChange={(id) => chatChannel = id} />
 		{:else if activeService === 'meet'}
@@ -118,10 +190,16 @@
 	<main class="content-panel" style="--service-color: {currentService.color}">
 		{#if activeService === 'mail' && currentMenu === 'Configuration'}
 			<MailAutoReply />
-		{:else if activeService === 'mail' && currentMenu === 'Drafts'}
-			<MailCompose />
+		{:else if activeService === 'mail' && composeMode !== null}
+			<MailCompose mode={composeMode} onDone={handleComposeDone} />
 		{:else if activeService === 'mail' && selectedEmailId}
-			<MailReader emailId={selectedEmailId} />
+			<MailReader
+				emailId={selectedEmailId}
+				onReply={handleReply}
+				onReplyAll={handleReplyAll}
+				onForward={handleForward}
+				onDelete={handleDelete}
+			/>
 		{:else if activeService === 'mail'}
 			<div class="empty-state">Select an email to read</div>
 		{:else if activeService === 'chat'}
@@ -143,6 +221,8 @@
 		messages={allMessages[activeService]}
 		actions={allActions[activeService]}
 	/>
+
+	<ToastContainer />
 </div>
 
 <style>

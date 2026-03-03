@@ -8,6 +8,10 @@ fn main() {
             commands::mail_search,
             commands::mail_read,
             commands::mail_send,
+            commands::mail_list_mailboxes,
+            commands::mail_move,
+            commands::mail_delete,
+            commands::mail_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

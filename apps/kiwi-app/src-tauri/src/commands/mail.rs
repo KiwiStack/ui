@@ -25,6 +25,10 @@ pub struct EmailSummary {
     pub subject: String,
     pub received_at: String,
     pub preview: String,
+    #[serde(default)]
+    pub is_read: bool,
+    #[serde(default)]
+    pub is_flagged: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,6 +43,10 @@ pub struct EmailDetail {
     pub body: String,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
+    #[serde(default)]
+    pub message_id: Option<String>,
+    #[serde(default)]
+    pub in_reply_to: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -60,12 +68,38 @@ pub struct SendParams {
     pub bcc: Vec<String>,
     pub subject: String,
     pub body: String,
+    #[serde(default)]
+    pub in_reply_to: Option<String>,
+    #[serde(default)]
+    pub references: Option<String>,
+    #[serde(default)]
+    pub format: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendResult {
     pub id: String,
     pub status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Mailbox {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub total_emails: u64,
+    #[serde(default)]
+    pub unread_emails: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EmailUpdate {
+    #[serde(default)]
+    pub is_read: Option<bool>,
+    #[serde(default)]
+    pub is_flagged: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -137,4 +171,75 @@ pub async fn mail_send(params: SendParams) -> Result<SendResult, String> {
         .map_err(|e| format!("Parse error: {e}"))?;
 
     Ok(envelope.data)
+}
+
+#[tauri::command]
+pub async fn mail_list_mailboxes() -> Result<Vec<Mailbox>, String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{MAIL_API}/api/v1/mailboxes"))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    let envelope: ApiResponse<Vec<Mailbox>> = resp
+        .json()
+        .await
+        .map_err(|e| format!("Parse error: {e}"))?;
+
+    Ok(envelope.data)
+}
+
+#[tauri::command]
+pub async fn mail_move(id: String, mailbox_id: String) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{MAIL_API}/api/v1/mail/{id}/move"))
+        .json(&serde_json::json!({ "mailbox_id": mailbox_id }))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mail_delete(id: String) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .delete(format!("{MAIL_API}/api/v1/mail/{id}"))
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mail_update(id: String, updates: EmailUpdate) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .patch(format!("{MAIL_API}/api/v1/mail/{id}"))
+        .json(&updates)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Server error: {}", resp.status()));
+    }
+
+    Ok(())
 }
