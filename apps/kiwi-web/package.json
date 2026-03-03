@@ -12,7 +12,8 @@
     "format": "echo 'TODO'"
   },
   "dependencies": {
-    "@kiwi/core": "workspace:*"
+    "@kiwi/core": "workspace:*",
+    "@kiwi/adapter-web": "workspace:*"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.0",

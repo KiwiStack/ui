@@ -14,6 +14,9 @@
 	import AssistantPanel from './AssistantPanel.svelte';
 
 	// Service-specific components
+	import MailInboxList from '../mail/MailInboxList.svelte';
+	import MailReader from '../mail/MailReader.svelte';
+	import MailCompose from '../mail/MailCompose.svelte';
 	import MailConfigList from '../mail/MailConfigList.svelte';
 	import MailAutoReply from '../mail/MailAutoReply.svelte';
 	import ChatChannelList from '../chat/ChatChannelList.svelte';
@@ -31,7 +34,7 @@
 
 	let activeService: ServiceId = $state('mail');
 	let activeMenus: Record<ServiceId, string> = $state({
-		mail: 'Configuration',
+		mail: 'Inbox',
 		chat: 'Channels',
 		meet: 'Upcoming',
 		docs: 'Recent',
@@ -41,6 +44,7 @@
 	});
 
 	// Per-service list selection state
+	let selectedEmailId: string | null = $state(null);
 	let mailConfigItem = $state('auto-reply');
 	let chatChannel = $state('engineering');
 	let meetMeeting = $state('sprint-review');
@@ -92,8 +96,10 @@
 	/>
 
 	<ListPane>
-		{#if activeService === 'mail'}
+		{#if activeService === 'mail' && currentMenu === 'Configuration'}
 			<MailConfigList activeItem={mailConfigItem} onItemChange={(id) => mailConfigItem = id} />
+		{:else if activeService === 'mail'}
+			<MailInboxList activeEmail={selectedEmailId} onEmailChange={(id) => selectedEmailId = id} />
 		{:else if activeService === 'chat'}
 			<ChatChannelList activeChannel={chatChannel} onChannelChange={(id) => chatChannel = id} />
 		{:else if activeService === 'meet'}
@@ -110,8 +116,14 @@
 	</ListPane>
 
 	<main class="content-panel" style="--service-color: {currentService.color}">
-		{#if activeService === 'mail'}
+		{#if activeService === 'mail' && currentMenu === 'Configuration'}
 			<MailAutoReply />
+		{:else if activeService === 'mail' && currentMenu === 'Drafts'}
+			<MailCompose />
+		{:else if activeService === 'mail' && selectedEmailId}
+			<MailReader emailId={selectedEmailId} />
+		{:else if activeService === 'mail'}
+			<div class="empty-state">Select an email to read</div>
 		{:else if activeService === 'chat'}
 			<ChatPostDraft />
 		{:else if activeService === 'meet'}
@@ -145,5 +157,14 @@
 	.content-panel {
 		overflow-y: auto;
 		height: 100%;
+	}
+	.empty-state {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		color: var(--text-muted);
+		font-family: var(--font-body);
+		font-size: 0.95rem;
 	}
 </style>

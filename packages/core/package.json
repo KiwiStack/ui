@@ -9,7 +9,8 @@
     },
     "./styles/*": "./styles/*",
     "./data/*": "./data/*",
-    "./assets/*": "./assets/*"
+    "./assets/*": "./assets/*",
+    "./services/*": "./services/*"
   },
   "peerDependencies": {
     "svelte": "^5.0.0"

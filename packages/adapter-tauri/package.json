@@ -5,5 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./index.ts"
+  },
+  "dependencies": {
+    "@kiwi/core": "workspace:*",
+    "@tauri-apps/api": "^2.0.0"
   }
 }

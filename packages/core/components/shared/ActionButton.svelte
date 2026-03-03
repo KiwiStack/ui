@@ -1,8 +1,8 @@
 <script lang="ts">
-	let { label, variant = 'primary' }: { label: string; variant?: 'primary' | 'secondary' } = $props();
+	let { label, variant = 'primary', onClick }: { label: string; variant?: 'primary' | 'secondary'; onClick?: () => void } = $props();
 </script>
 
-<button class="action-btn" class:primary={variant === 'primary'} class:secondary={variant === 'secondary'}>
+<button class="action-btn" class:primary={variant === 'primary'} class:secondary={variant === 'secondary'} onclick={onClick}>
 	{label}
 </button>
 
